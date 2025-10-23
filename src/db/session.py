@@ -40,8 +40,3 @@ async def get_session(
 async def get_base_session() -> AsyncGenerator[AsyncSession, None]:
     async for session in get_session(url=settings().postgres_dsn):
         yield session
-
-
-async def get_readonly_session() -> AsyncGenerator[AsyncSession, None]:
-    async for session in get_session(url=settings().readonly_dsn):
-        yield session
