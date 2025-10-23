@@ -15,7 +15,23 @@ class OrganizationRepository(BaseDatabaseRepository):
         result = await self._session.execute(query)
         return IDSchema(id=result.scalar_one())
 
-    async def get_organizations_by_name(self, name: str) -> Sequence[GetOrganizationSchema]:
+    async def get_by_id(self, id: int) -> GetOrganizationSchema | None:
+        query = (
+            select(Organization, Building)
+            .join(Building, Organization.building_id == Building.id)
+            .where(Organization.id == id)
+        )
+
+        result = await self._session.execute(query)
+        organization_row = result.first()
+
+        return (
+            GetOrganizationSchema.model_encode(organization_row[0], dict(building=organization_row[1]))
+            if organization_row
+            else None
+        )
+
+    async def get_organizations_by_name_or_building_id(self, name: str) -> Sequence[GetOrganizationSchema]:
         query = (
             select(Organization, Building)
             .join(Building, Organization.building_id == Building.id)

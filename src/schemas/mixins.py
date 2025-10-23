@@ -14,6 +14,7 @@ class CreatedAtSchema(BaseSchema):
 class UpdatedAtSchema(BaseSchema):
     updated_at: datetime | None = None
 
+
 class CoordinatesSchema(BaseSchema):
     latitude: float
     longitude: float

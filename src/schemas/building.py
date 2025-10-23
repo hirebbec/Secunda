@@ -1,8 +1,7 @@
-from schemas.base import BaseSchema
-from schemas.mixins import CreatedAtSchema, IDSchema, UpdatedAtSchema, CoordinatesSchema
+from schemas.mixins import CoordinatesSchema, CreatedAtSchema, IDSchema, UpdatedAtSchema
 
 
-class CreateBuildingSchema(BaseSchema, CoordinatesSchema):
+class CreateBuildingSchema(CoordinatesSchema):
     address: str
 
 
