@@ -46,7 +46,11 @@ class Settings(BaseSettings):
             f"{postgres_host}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
         )
 
-    model_config = SettingsConfigDict(env_file=env_file if env_file else None, env_file_encoding="utf-8", extra="allow")
+    model_config = SettingsConfigDict(
+        env_file=env_file if env_file else None,
+        env_file_encoding="utf-8",
+        extra="allow",
+    )
 
 
 @functools.lru_cache()
