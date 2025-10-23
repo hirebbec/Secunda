@@ -2,7 +2,7 @@ from typing import Sequence
 
 from fastapi import Depends
 
-from core.exceptions import activity_not_found_exception, building_not_found_exception
+from core.exceptions import activity_not_found_exception, building_not_found_exception, organization_not_found_exception
 from db.repository.activity import ActivityRepository
 from db.repository.building import BuildingRepository
 from db.repository.organization import OrganizationRepository
@@ -32,8 +32,27 @@ class OrganizationService(BaseService):
 
         return await self._organization_repository.create(organization=organization)
 
-    async def get_organizations_by_name(self, name: str) -> Sequence[GetOrganizationSchema]:
-        return await self._organization_repository.get_organizations_by_name(name=name)
+    async def get_organizations_by_id(self, id: int) -> GetOrganizationSchema:
+        organization = await self._organization_repository.get_by_id(id=id)
 
-    async def get_organizations_by_building_id(self, building_id: int) -> Sequence[GetOrganizationSchema]:
-        return await self._organization_repository.get_organizations_by_building_id(building_id=building_id)
+        if not organization:
+            raise organization_not_found_exception
+
+        return organization
+
+    async def get_organizations_by_name_or_building_id(
+        self, name: str | None, building_id: int | None
+    ) -> Sequence[GetOrganizationSchema]:
+        organizations: list[GetOrganizationSchema] = []
+
+        if name:
+            organizations += await self._organization_repository.get_organizations_by_name_or_building_id(name=name)
+
+        if building_id:
+            organizations += await self._organization_repository.get_organizations_by_building_id(
+                building_id=building_id
+            )
+
+        unique_organizations: dict[int, GetOrganizationSchema] = {org.id: org for org in organizations}
+
+        return list(unique_organizations.values())
