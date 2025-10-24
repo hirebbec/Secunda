@@ -15,6 +15,26 @@ activity_not_found_exception = HTTPException(
     detail="Activity not found",
 )
 
+duplicated_activity_name_exception = HTTPException(
+    status_code=status.HTTP_400_BAD_REQUEST,
+    detail="Duplicated activity name",
+)
+
+duplicated_building_address_exception = HTTPException(
+    status_code=status.HTTP_400_BAD_REQUEST,
+    detail="Duplicated building address",
+)
+
+duplicated_organization_name_exception = HTTPException(
+    status_code=status.HTTP_400_BAD_REQUEST,
+    detail="Duplicated organization name",
+)
+
+max_activity_depth_exception = HTTPException(
+    status_code=status.HTTP_400_BAD_REQUEST,
+    detail="Maximum activity nesting depth exceeded",
+)
+
 
 class ModelEncodeValidationError(Exception):
     def __init__(self, message) -> None:

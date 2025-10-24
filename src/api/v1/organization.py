@@ -24,7 +24,14 @@ async def get_organizations_by_id(
 
 
 @router.get("/", status_code=status.HTTP_200_OK, response_model=Sequence[GetOrganizationSchema])
-async def get_organizations_by_name_or_building_id(
-    name: str | None = None, building_id: int | None = None, organization_service: OrganizationService = Depends()
+async def get_organizations_by_name_or_address(
+    name: str | None = None, address: str | None = None, organization_service: OrganizationService = Depends()
 ) -> Sequence[GetOrganizationSchema]:
-    return await organization_service.get_organizations_by_name_or_building_id(name=name, building_id=building_id)
+    return await organization_service.get_organizations_by_name_or_address(name=name, address=address)
+
+
+@router.get("/", status_code=status.HTTP_200_OK, response_model=Sequence[GetOrganizationSchema])
+async def get_organizations_by_activity(
+    activity: str, organization_service: OrganizationService = Depends()
+) -> Sequence[GetOrganizationSchema]:
+    return await organization_service.get_organizations_by_activity(activity=activity)

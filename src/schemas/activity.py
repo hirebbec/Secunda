@@ -10,4 +10,5 @@ class CreateActivitySchema(BaseSchema):
 class UpdateActivitySchema(CreateActivitySchema): ...
 
 
-class GetActivitySchema(UpdateActivitySchema, IDSchema, CreatedAtSchema, UpdatedAtSchema): ...
+class GetActivitySchema(UpdateActivitySchema, IDSchema, CreatedAtSchema, UpdatedAtSchema):
+    children: list["GetActivitySchema"] | None = None

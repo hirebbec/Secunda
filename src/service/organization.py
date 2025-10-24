@@ -6,8 +6,10 @@ from core.exceptions import activity_not_found_exception, building_not_found_exc
 from db.repository.activity import ActivityRepository
 from db.repository.building import BuildingRepository
 from db.repository.organization import OrganizationRepository
+from db.repository.organization_to_activity_relationship import OrganizationToActivityRelationshipRepository
 from schemas.mixins import IDSchema
 from schemas.organization import CreateOrganizationSchema, GetOrganizationSchema
+from schemas.organization_to_activity_relationship import CreateOrganizationToActivityRelationshipSchema
 from service.base import BaseService
 
 
@@ -17,20 +19,29 @@ class OrganizationService(BaseService):
         organization_repository: OrganizationRepository = Depends(),
         building_repository: BuildingRepository = Depends(),
         activity_repository: ActivityRepository = Depends(),
+        organization_to_activity_repository: OrganizationToActivityRelationshipRepository = Depends(),
     ):
         self._organization_repository = organization_repository
         self._building_repository = building_repository
         self._activity_repository = activity_repository
+        self._organization_to_activity_repository = organization_to_activity_repository
 
     async def create_organization(self, organization: CreateOrganizationSchema) -> IDSchema:
         if not await self._building_repository.get_by_id(id=organization.building_id):
             raise building_not_found_exception
 
-        for activity_id in organization.activities_ids:
-            if not await self._activity_repository.get_by_id(id=activity_id):
-                raise activity_not_found_exception
+        if not await self._activity_repository.get_by_id(id=organization.activity_id):
+            raise activity_not_found_exception
 
-        return await self._organization_repository.create(organization=organization)
+        organization_id_schema = await self._organization_repository.create(organization=organization)
+
+        await self._organization_to_activity_repository.create(
+            relationship=CreateOrganizationToActivityRelationshipSchema(
+                organization_id=organization_id_schema.id, activity_id=organization.activity_id
+            )
+        )
+
+        return organization_id_schema
 
     async def get_organizations_by_id(self, id: int) -> GetOrganizationSchema:
         organization = await self._organization_repository.get_by_id(id=id)
@@ -38,21 +49,32 @@ class OrganizationService(BaseService):
         if not organization:
             raise organization_not_found_exception
 
+        relationships = await self._organization_to_activity_repository.get_by_organization_id(
+            organization_id=organization.id
+        )
+
+        for relationship in relationships:
+            organization.activities += await self._activity_repository.get_by_id(id=relationship.activity_id)
+
         return organization
 
-    async def get_organizations_by_name_or_building_id(
-        self, name: str | None, building_id: int | None
+    async def get_organizations_by_name_or_address(
+        self, name: str | None, address: str | None
     ) -> Sequence[GetOrganizationSchema]:
-        organizations: list[GetOrganizationSchema] = []
+        organizations = await self._organization_repository.get_by_name_or_address(name=name, address=address)
 
-        if name:
-            organizations += await self._organization_repository.get_organizations_by_name_or_building_id(name=name)
-
-        if building_id:
-            organizations += await self._organization_repository.get_organizations_by_building_id(
-                building_id=building_id
+        for organization in organizations:
+            relationships = await self._organization_to_activity_repository.get_by_organization_id(
+                organization_id=organization.id
             )
 
-        unique_organizations: dict[int, GetOrganizationSchema] = {org.id: org for org in organizations}
+            for relationship in relationships:
+                organization.activities += await self._activity_repository.get_by_id(id=relationship.activity_id)
 
-        return list(unique_organizations.values())
+        return organizations
+
+    async def get_organizations_by_activity(
+        self,
+        activity: str | None,
+    ) -> Sequence[GetOrganizationSchema]:
+        return await self._organization_repository.get_organizations_by_activity

@@ -6,9 +6,8 @@ from db.models.mixins import CreatedAtMixin, IDMixin, UpdatedAtMixin
 
 
 class Organization(BaseModel, IDMixin, CreatedAtMixin, UpdatedAtMixin):
-    __tablename__ = "organisations"
+    __tablename__ = "organizations"
 
-    name: Mapped[str] = mapped_column(String, nullable=False)
+    name: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     phone_number: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False)
     building_id: Mapped[int] = mapped_column(Integer, ForeignKey("buildings.id"), nullable=False)
-    activities_ids: Mapped[list[int]] = mapped_column(ARRAY(Integer), nullable=False)
