@@ -32,7 +32,7 @@ class ActivityService(BaseService):
             if not parent_activity:
                 raise activity_not_found_exception
 
-            depth = await self._get_activity_depth(activity=parent_activity)
+            depth = await self.__get_activity_depth(activity=parent_activity)
 
             if depth >= settings().MAX_ACTIVITY_DEPTH:
                 raise max_activity_depth_exception
@@ -52,7 +52,7 @@ class ActivityService(BaseService):
             if not parent_activity:
                 raise activity_not_found_exception
 
-            depth = await self._get_activity_depth(activity=parent_activity)
+            depth = await self.__get_activity_depth(activity=parent_activity)
 
             if depth >= settings().MAX_ACTIVITY_DEPTH:
                 raise max_activity_depth_exception
@@ -67,6 +67,14 @@ class ActivityService(BaseService):
             raise activity_not_found_exception
 
         await self._organization_to_activity_repository.delete_by_activity_id(activity_id=id)
+
+        children = await self._activity_repository.get_by_parent_id(parent_id=id)
+
+        for child in children:
+            await self._activity_repository.update(
+                activity=UpdateActivitySchema.model_encode(child.model_dump(), dict(parent_id=None))
+            )
+
         await self._activity_repository.delete(id=id)
 
     async def get_activity_by_id(self, id: int) -> GetActivitySchema:
@@ -75,7 +83,18 @@ class ActivityService(BaseService):
         if not activity:
             raise activity_not_found_exception
 
-        activity.children = await self._get_children_recursive(parent_id=activity.id)
+        activity.children = await self.__get_children_recursive(parent_id=activity.id)
+
+        return GetActivitySchema.model_validate(activity)
+
+    async def get_activity_by_name(self, name: str, with_children: bool) -> GetActivitySchema:
+        activity = await self._activity_repository.get_by_name(name=name)
+
+        if not activity:
+            raise activity_not_found_exception
+
+        if with_children:
+            activity.children = await self.__get_children_recursive(parent_id=activity.id)
 
         return GetActivitySchema.model_validate(activity)
 
@@ -83,19 +102,19 @@ class ActivityService(BaseService):
         roots = await self._activity_repository.get_by_parent_id(parent_id=None)
 
         for root in roots:
-            root.children = await self._get_children_recursive(parent_id=root.id)
+            root.children = await self.__get_children_recursive(parent_id=root.id)
 
         return [GetActivitySchema.model_validate(root) for root in roots]
 
-    async def _get_children_recursive(self, parent_id: int) -> Sequence[GetActivitySchema]:
+    async def __get_children_recursive(self, parent_id: int) -> list[GetActivitySchema]:
         children = await self._activity_repository.get_by_parent_id(parent_id=parent_id)
 
         for child in children:
-            child.children = await self._get_children_recursive(parent_id=child.id)
+            child.children = await self.__get_children_recursive(parent_id=child.id)
 
-        return children
+        return list(children)
 
-    async def _get_activity_depth(self, activity: GetActivitySchema | None) -> int:
+    async def __get_activity_depth(self, activity: GetActivitySchema | None) -> int:
         depth = 1
 
         while activity and activity.parent_id:

@@ -24,7 +24,7 @@ async def delete_building_by_id(id: int, building_service: BuildingService = Dep
     return await building_service.delete_building_by_id(id=id)
 
 
-@router.get("/", status_code=status.HTTP_200_OK, response_model=GetBuildingSchema)
+@router.get("/{id}", status_code=status.HTTP_200_OK, response_model=GetBuildingSchema)
 async def get_building_by_id(id: int, building_service: BuildingService = Depends()) -> GetBuildingSchema:
     return await building_service.get_building_by_id(id=id)
 

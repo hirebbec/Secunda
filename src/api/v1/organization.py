@@ -23,7 +23,7 @@ async def update_organization(
     return await organization_service.update_organization(organization=organization)
 
 
-@router.put("/", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+@router.delete("/", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 async def delete_organization_by_id(id: int, organization_service: OrganizationService = Depends()) -> None:
     return await organization_service.delete_organization_by_id(id=id)
 
@@ -36,14 +36,13 @@ async def get_organization_by_id(
 
 
 @router.get("/", status_code=status.HTTP_200_OK, response_model=Sequence[GetOrganizationSchema])
-async def get_organizations_by_name_or_address(
-    name: str | None = None, address: str | None = None, organization_service: OrganizationService = Depends()
+async def get_organizations(
+    name: str | None = None,
+    address: str | None = None,
+    activity_name: str | None = None,
+    with_children: bool = True,
+    organization_service: OrganizationService = Depends(),
 ) -> Sequence[GetOrganizationSchema]:
-    return await organization_service.get_organizations_by_name_or_address(name=name, address=address)
-
-
-@router.get("/", status_code=status.HTTP_200_OK, response_model=Sequence[GetOrganizationSchema])
-async def get_organizations_by_activity(
-    activity: str, organization_service: OrganizationService = Depends()
-) -> Sequence[GetOrganizationSchema]:
-    return await organization_service.get_organizations_by_activity(activity=activity)
+    return await organization_service.get_organizations(
+        name=name, address=address, activity_name=activity_name, with_children=with_children
+    )

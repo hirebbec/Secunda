@@ -2,10 +2,10 @@ from sqlalchemy import ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from db.models import BaseModel
-from db.models.mixins import IDMixin
+from db.models.mixins import CreatedAtMixin, IDMixin, UpdatedAtMixin
 
 
-class OrganizationToActivityRelationship(BaseModel, IDMixin):
+class OrganizationToActivityRelationship(BaseModel, IDMixin, CreatedAtMixin, UpdatedAtMixin):
     __tablename__ = "organizations_to_activities_relationship"
 
     organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=False)

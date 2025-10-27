@@ -1,8 +1,8 @@
 from typing import Sequence
 
-from sqlalchemy import delete, insert, or_, select, true, update
+from sqlalchemy import and_, delete, insert, select, true, update
 
-from db.models import Building, Organization
+from db.models import Building, Organization, OrganizationToActivityRelationship
 from db.repository.base import BaseDatabaseRepository
 from schemas.mixins import IDSchema
 from schemas.organization import CreateOrganizationSchema, GetOrganizationSchema, UpdateOrganizationSchema
@@ -10,7 +10,13 @@ from schemas.organization import CreateOrganizationSchema, GetOrganizationSchema
 
 class OrganizationRepository(BaseDatabaseRepository):
     async def create(self, organization: CreateOrganizationSchema) -> IDSchema:
-        query = insert(Organization).values(**organization.model_dump()).returning(Organization.id)
+        query = (
+            insert(Organization)
+            .values(
+                name=organization.name, phone_number=organization.phone_number, building_id=organization.building_id
+            )
+            .returning(Organization.id)
+        )
 
         result = await self._session.execute(query)
         return IDSchema(id=result.scalar_one())
@@ -57,11 +63,24 @@ class OrganizationRepository(BaseDatabaseRepository):
             for organization_row in result.all()
         ]
 
-    async def get_by_name_or_address(self, name: str | None, address: str | None) -> Sequence[GetOrganizationSchema]:
+    async def get_organizations(
+        self, name: str | None, address: str | None, activity_ids: list[int]
+    ) -> Sequence[GetOrganizationSchema]:
         query = (
             select(Organization, Building)
             .join(Building, Organization.building_id == Building.id)
-            .where(or_(Organization.name == name if name else true(), Building.address == address if name else true()))
+            .join(
+                OrganizationToActivityRelationship,
+                OrganizationToActivityRelationship.organization_id == Organization.id,
+            )
+            .where(
+                and_(
+                    Organization.name == name if name else true(),
+                    Building.address == address if address else true(),
+                    OrganizationToActivityRelationship.activity_id.in_(activity_ids) if activity_ids else true(),
+                )
+            )
+            .distinct()
         )
 
         result = await self._session.execute(query)

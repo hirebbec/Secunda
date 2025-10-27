@@ -35,6 +35,14 @@ class ActivityRepository(BaseDatabaseRepository):
 
         return GetActivitySchema.model_validate(activity) if activity else None
 
+    async def get_by_name(self, name: str) -> GetActivitySchema | None:
+        query = select(Activity).where(Activity.name == name)
+
+        result = await self._session.execute(query)
+        activity = result.scalars().first()
+
+        return GetActivitySchema.model_validate(activity) if activity else None
+
     async def get_activities(self) -> Sequence[GetActivitySchema]:
         query = select(Activity)
 

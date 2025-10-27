@@ -10,6 +10,7 @@ from db.repository.organization_to_activity_relationship import OrganizationToAc
 from schemas.mixins import IDSchema
 from schemas.organization import CreateOrganizationSchema, GetOrganizationSchema, UpdateOrganizationSchema
 from schemas.organization_to_activity_relationship import CreateOrganizationToActivityRelationshipSchema
+from service.activity import ActivityService
 from service.base import BaseService
 
 
@@ -20,11 +21,13 @@ class OrganizationService(BaseService):
         building_repository: BuildingRepository = Depends(),
         activity_repository: ActivityRepository = Depends(),
         organization_to_activity_repository: OrganizationToActivityRelationshipRepository = Depends(),
+        activity_service: ActivityService = Depends(),
     ):
         self._organization_repository = organization_repository
         self._building_repository = building_repository
         self._activity_repository = activity_repository
         self._organization_to_activity_repository = organization_to_activity_repository
+        self._activity_service = activity_service
 
     async def create_organization(self, organization: CreateOrganizationSchema) -> IDSchema:
         if not await self._building_repository.get_by_id(id=organization.building_id):
@@ -86,17 +89,38 @@ class OrganizationService(BaseService):
         )
 
         for relationship in relationships:
-            activity = await self._activity_repository.get_by_id(id=relationship.activity_id)
+            activity = await self._activity_service.get_activity_by_id(id=relationship.activity_id)
 
             if activity:
                 organization.activities.append(activity)
 
         return organization
 
-    async def get_organizations_by_name_or_address(
-        self, name: str | None, address: str | None
+    async def get_organizations(
+        self,
+        name: str | None,
+        address: str | None,
+        activity_name: str | None,
+        with_children: bool,
     ) -> Sequence[GetOrganizationSchema]:
-        organizations = await self._organization_repository.get_by_name_or_address(name=name, address=address)
+        activity_ids: list[int] = []
+
+        if activity_name:
+            activity = await self._activity_service.get_activity_by_name(
+                name=activity_name, with_children=with_children
+            )
+
+            if activity:
+                activity_ids.append(activity.id)
+
+                for child in activity.children:
+                    activity_ids.append(child.id)
+                    for grandchild in child.children:
+                        activity_ids.append(grandchild.id)
+
+        organizations = await self._organization_repository.get_organizations(
+            name=name, address=address, activity_ids=activity_ids
+        )
 
         for organization in organizations:
             relationships = await self._organization_to_activity_repository.get_by_organization_id(
@@ -104,9 +128,8 @@ class OrganizationService(BaseService):
             )
 
             for relationship in relationships:
-                activity = await self._activity_repository.get_by_id(id=relationship.activity_id)
-
-                if activity:
-                    organization.activities.append(activity)
+                organization.activities.append(
+                    await self._activity_service.get_activity_by_id(id=relationship.activity_id)
+                )
 
         return organizations
