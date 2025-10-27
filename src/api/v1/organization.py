@@ -2,6 +2,7 @@ from typing import Sequence
 
 from fastapi import APIRouter, Depends, status
 
+from schemas.filter import FilterSchema
 from schemas.mixins import IDSchema
 from schemas.organization import CreateOrganizationSchema, GetOrganizationSchema, UpdateOrganizationSchema
 from service.organization import OrganizationService
@@ -37,12 +38,7 @@ async def get_organization_by_id(
 
 @router.get("/", status_code=status.HTTP_200_OK, response_model=Sequence[GetOrganizationSchema])
 async def get_organizations(
-    name: str | None = None,
-    address: str | None = None,
-    activity_name: str | None = None,
-    with_children: bool = True,
+    filter: FilterSchema = Depends(),
     organization_service: OrganizationService = Depends(),
 ) -> Sequence[GetOrganizationSchema]:
-    return await organization_service.get_organizations(
-        name=name, address=address, activity_name=activity_name, with_children=with_children
-    )
+    return await organization_service.get_organizations(filter=filter)

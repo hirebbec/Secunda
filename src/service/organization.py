@@ -7,6 +7,7 @@ from db.repository.activity import ActivityRepository
 from db.repository.building import BuildingRepository
 from db.repository.organization import OrganizationRepository
 from db.repository.organization_to_activity_relationship import OrganizationToActivityRelationshipRepository
+from schemas.filter import FilterSchema
 from schemas.mixins import IDSchema
 from schemas.organization import CreateOrganizationSchema, GetOrganizationSchema, UpdateOrganizationSchema
 from schemas.organization_to_activity_relationship import CreateOrganizationToActivityRelationshipSchema
@@ -96,18 +97,12 @@ class OrganizationService(BaseService):
 
         return organization
 
-    async def get_organizations(
-        self,
-        name: str | None,
-        address: str | None,
-        activity_name: str | None,
-        with_children: bool,
-    ) -> Sequence[GetOrganizationSchema]:
+    async def get_organizations(self, filter: FilterSchema) -> Sequence[GetOrganizationSchema]:
         activity_ids: list[int] = []
 
-        if activity_name:
+        if filter.activity_name:
             activity = await self._activity_service.get_activity_by_name(
-                name=activity_name, with_children=with_children
+                name=filter.activity_name, with_children=filter.with_children
             )
 
             if activity:
@@ -118,9 +113,7 @@ class OrganizationService(BaseService):
                     for grandchild in child.children:
                         activity_ids.append(grandchild.id)
 
-        organizations = await self._organization_repository.get_organizations(
-            name=name, address=address, activity_ids=activity_ids
-        )
+        organizations = await self._organization_repository.get_organizations(filter=filter, activity_ids=activity_ids)
 
         for organization in organizations:
             relationships = await self._organization_to_activity_repository.get_by_organization_id(

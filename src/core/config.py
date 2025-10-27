@@ -18,6 +18,8 @@ class Settings(BaseSettings):
 
     MAX_ACTIVITY_DEPTH: int = 3
 
+    EARTH_RADIUS_IN_METERS: int = 6371000
+
     ENVIRONMENT: str = "local"
     TIME_ZONE: timezone = timezone(offset=timedelta(hours=+3))
     CORS_ALLOW_ORIGIN_LIST: str = "*"
