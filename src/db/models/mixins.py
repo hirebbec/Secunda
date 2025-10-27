@@ -25,5 +25,5 @@ class UpdatedAtMixin:
 class CoordinatesMixin:
     __abstract__ = True
 
-    latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
-    longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    latitude: Mapped[float] = mapped_column(Float)
+    longitude: Mapped[float] = mapped_column(Float)

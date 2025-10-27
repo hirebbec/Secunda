@@ -8,7 +8,7 @@ from db.models.mixins import CreatedAtMixin, IDMixin, UpdatedAtMixin
 class Activity(BaseModel, IDMixin, CreatedAtMixin, UpdatedAtMixin):
     __tablename__ = "activities"
 
-    name: Mapped[str] = mapped_column(String, nullable=False)
+    name: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     parent_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey("activities.id"),

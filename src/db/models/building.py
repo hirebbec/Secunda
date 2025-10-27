@@ -8,4 +8,4 @@ from db.models.mixins import CoordinatesMixin, CreatedAtMixin, IDMixin, UpdatedA
 class Building(BaseModel, IDMixin, CreatedAtMixin, UpdatedAtMixin, CoordinatesMixin):
     __tablename__ = "buildings"
 
-    address: Mapped[str] = mapped_column(String, nullable=False)
+    address: Mapped[str] = mapped_column(String, nullable=False, unique=True)

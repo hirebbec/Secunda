@@ -42,6 +42,7 @@ services:
       - "5432:5432"
     volumes:
       - secunda-db-data:/var/lib/postgresql/data/
+      - ./db/dump.sql:/docker-entrypoint-initdb.d/dump.sql:ro
     healthcheck:
       test: pg_isready -p 5432 -U secunda-map-db -d secunda-map-db
       interval: 60s
