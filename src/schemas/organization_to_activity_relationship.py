@@ -7,9 +7,9 @@ class CreateOrganizationToActivityRelationshipSchema(BaseSchema):
     activity_id: int
 
 
-class UpdateOrganizationToActivityRelationshipSchema(CreateOrganizationToActivityRelationshipSchema): ...
+class UpdateOrganizationToActivityRelationshipSchema(IDSchema, CreateOrganizationToActivityRelationshipSchema): ...
 
 
 class GetOrganizationToActivityRelationshipSchema(
-    UpdateOrganizationToActivityRelationshipSchema, IDSchema, CreatedAtSchema, UpdatedAtSchema
+    UpdateOrganizationToActivityRelationshipSchema, CreatedAtSchema, UpdatedAtSchema
 ): ...

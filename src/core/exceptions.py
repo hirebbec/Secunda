@@ -35,6 +35,11 @@ max_activity_depth_exception = HTTPException(
     detail="Maximum activity nesting depth exceeded",
 )
 
+building_with_organization_exception = HTTPException(
+    status_code=status.HTTP_400_BAD_REQUEST,
+    detail="Try to delete building with organization",
+)
+
 
 class ModelEncodeValidationError(Exception):
     def __init__(self, message) -> None:

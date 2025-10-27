@@ -11,10 +11,10 @@ class BaseOrganizationSchema(BaseSchema):
 
 class CreateOrganizationSchema(BaseOrganizationSchema):
     building_id: int
-    activity_id: int
+    activities_ids: list[int] = []
 
 
-class UpdateOrganizationSchema(CreateOrganizationSchema): ...
+class UpdateOrganizationSchema(IDSchema, CreateOrganizationSchema): ...
 
 
 class GetOrganizationSchema(BaseOrganizationSchema, IDSchema, CreatedAtSchema, UpdatedAtSchema):

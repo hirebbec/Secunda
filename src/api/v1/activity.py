@@ -2,16 +2,26 @@ from typing import Sequence
 
 from fastapi import APIRouter, Depends, status
 
-from schemas.activity import CreateActivitySchema, GetActivitySchema
+from schemas.activity import CreateActivitySchema, GetActivitySchema, UpdateActivitySchema
 from schemas.mixins import IDSchema
 from service.activity import ActivityService
 
 router = APIRouter(prefix="/activities", tags=["Activities"])
 
 
-@router.post("/", status_code=status.HTTP_200_OK, response_model=IDSchema)
+@router.post("/", status_code=status.HTTP_201_CREATED, response_model=IDSchema)
 async def create_activity(activity: CreateActivitySchema, activity_service: ActivityService = Depends()) -> IDSchema:
     return await activity_service.create_activity(activity=activity)
+
+
+@router.put("/", status_code=status.HTTP_200_OK, response_model=None)
+async def update_activity(activity: UpdateActivitySchema, activity_service: ActivityService = Depends()) -> None:
+    return await activity_service.update_activity(activity=activity)
+
+
+@router.delete("/", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+async def delete_activity(id: int, activity_service: ActivityService = Depends()) -> None:
+    return await activity_service.delete_activity(id=id)
 
 
 @router.get("/{id}", status_code=status.HTTP_200_OK, response_model=GetActivitySchema)

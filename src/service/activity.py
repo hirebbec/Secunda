@@ -10,7 +10,8 @@ from core.exceptions import (
     max_activity_depth_exception,
 )
 from db.repository.activity import ActivityRepository
-from schemas.activity import CreateActivitySchema, GetActivitySchema
+from db.repository.organization_to_activity_relationship import OrganizationToActivityRelationshipRepository
+from schemas.activity import CreateActivitySchema, GetActivitySchema, UpdateActivitySchema
 from schemas.mixins import IDSchema
 from service.base import BaseService
 
@@ -19,19 +20,22 @@ class ActivityService(BaseService):
     def __init__(
         self,
         activity_repository: ActivityRepository = Depends(),
+        organization_to_activity_repository: OrganizationToActivityRelationshipRepository = Depends(),
     ):
         self._activity_repository = activity_repository
+        self._organization_to_activity_repository = organization_to_activity_repository
 
     async def create_activity(self, activity: CreateActivitySchema) -> IDSchema:
-        parent_activity = await self._activity_repository.get_by_id(id=activity.parent_id)
+        if activity.parent_id:
+            parent_activity = await self._activity_repository.get_by_id(id=activity.parent_id)
 
-        if not parent_activity:
-            raise activity_not_found_exception()
+            if not parent_activity:
+                raise activity_not_found_exception
 
-        depth = await self._get_activity_depth(activity=parent_activity)
+            depth = await self._get_activity_depth(activity=parent_activity)
 
-        if depth >= settings().MAX_ACTIVITY_DEPTH:
-            raise max_activity_depth_exception
+            if depth >= settings().MAX_ACTIVITY_DEPTH:
+                raise max_activity_depth_exception
 
         try:
             activity_id = await self._activity_repository.create(activity=activity)
@@ -40,6 +44,30 @@ class ActivityService(BaseService):
             raise duplicated_activity_name_exception
 
         return activity_id
+
+    async def update_activity(self, activity: UpdateActivitySchema) -> None:
+        if activity.parent_id:
+            parent_activity = await self._activity_repository.get_by_id(id=activity.parent_id)
+
+            if not parent_activity:
+                raise activity_not_found_exception
+
+            depth = await self._get_activity_depth(activity=parent_activity)
+
+            if depth >= settings().MAX_ACTIVITY_DEPTH:
+                raise max_activity_depth_exception
+
+        if not await self._activity_repository.get_by_id(id=activity.id):
+            raise activity_not_found_exception
+
+        await self._activity_repository.update(activity=activity)
+
+    async def delete_activity(self, id: int) -> None:
+        if not await self._activity_repository.get_by_id(id=id):
+            raise activity_not_found_exception
+
+        await self._organization_to_activity_repository.delete_by_activity_id(activity_id=id)
+        await self._activity_repository.delete(id=id)
 
     async def get_activity_by_id(self, id: int) -> GetActivitySchema:
         activity = await self._activity_repository.get_by_id(id=id)
@@ -67,10 +95,10 @@ class ActivityService(BaseService):
 
         return children
 
-    async def _get_activity_depth(self, activity: GetActivitySchema) -> int:
+    async def _get_activity_depth(self, activity: GetActivitySchema | None) -> int:
         depth = 1
 
-        while activity.parent_id:
+        while activity and activity.parent_id:
             activity = await self._activity_repository.get_by_id(id=activity.parent_id)
 
             if not activity:

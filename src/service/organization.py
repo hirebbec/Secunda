@@ -8,7 +8,7 @@ from db.repository.building import BuildingRepository
 from db.repository.organization import OrganizationRepository
 from db.repository.organization_to_activity_relationship import OrganizationToActivityRelationshipRepository
 from schemas.mixins import IDSchema
-from schemas.organization import CreateOrganizationSchema, GetOrganizationSchema
+from schemas.organization import CreateOrganizationSchema, GetOrganizationSchema, UpdateOrganizationSchema
 from schemas.organization_to_activity_relationship import CreateOrganizationToActivityRelationshipSchema
 from service.base import BaseService
 
@@ -30,20 +30,52 @@ class OrganizationService(BaseService):
         if not await self._building_repository.get_by_id(id=organization.building_id):
             raise building_not_found_exception
 
-        if not await self._activity_repository.get_by_id(id=organization.activity_id):
-            raise activity_not_found_exception
+        for activity_id in organization.activities_ids:
+            if not await self._activity_repository.get_by_id(id=activity_id):
+                raise activity_not_found_exception
 
         organization_id_schema = await self._organization_repository.create(organization=organization)
 
-        await self._organization_to_activity_repository.create(
-            relationship=CreateOrganizationToActivityRelationshipSchema(
-                organization_id=organization_id_schema.id, activity_id=organization.activity_id
+        for activity_id in organization.activities_ids:
+            await self._organization_to_activity_repository.create(
+                relationship=CreateOrganizationToActivityRelationshipSchema(
+                    organization_id=organization_id_schema.id, activity_id=activity_id
+                )
             )
-        )
 
         return organization_id_schema
 
-    async def get_organizations_by_id(self, id: int) -> GetOrganizationSchema:
+    async def update_organization(self, organization: UpdateOrganizationSchema) -> None:
+        if not await self._building_repository.get_by_id(id=organization.building_id):
+            raise building_not_found_exception
+
+        for activity_id in organization.activities_ids:
+            if not await self._activity_repository.get_by_id(id=activity_id):
+                raise activity_not_found_exception
+
+        if not await self._organization_repository.get_by_id(id=organization.id):
+            raise organization_not_found_exception
+
+        await self._organization_repository.update(organization=organization)
+
+        await self._organization_to_activity_repository.delete_by_organization_id(organization_id=organization.id)
+
+        for activity_id in organization.activities_ids:
+            await self._organization_to_activity_repository.create(
+                relationship=CreateOrganizationToActivityRelationshipSchema(
+                    organization_id=organization.id, activity_id=activity_id
+                )
+            )
+
+    async def delete_organization_by_id(self, id: int) -> None:
+        if not await self._organization_repository.get_by_id(id=id):
+            raise organization_not_found_exception
+
+        await self._organization_to_activity_repository.delete_by_organization_id(organization_id=id)
+
+        await self._organization_repository.delete(id=id)
+
+    async def get_organization_by_id(self, id: int) -> GetOrganizationSchema:
         organization = await self._organization_repository.get_by_id(id=id)
 
         if not organization:
@@ -54,7 +86,10 @@ class OrganizationService(BaseService):
         )
 
         for relationship in relationships:
-            organization.activities += await self._activity_repository.get_by_id(id=relationship.activity_id)
+            activity = await self._activity_repository.get_by_id(id=relationship.activity_id)
+
+            if activity:
+                organization.activities.append(activity)
 
         return organization
 
@@ -69,12 +104,9 @@ class OrganizationService(BaseService):
             )
 
             for relationship in relationships:
-                organization.activities += await self._activity_repository.get_by_id(id=relationship.activity_id)
+                activity = await self._activity_repository.get_by_id(id=relationship.activity_id)
+
+                if activity:
+                    organization.activities.append(activity)
 
         return organizations
-
-    async def get_organizations_by_activity(
-        self,
-        activity: str | None,
-    ) -> Sequence[GetOrganizationSchema]:
-        return await self._organization_repository.get_organizations_by_activity
