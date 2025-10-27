@@ -5,6 +5,6 @@
 ![Postgres](https://img.shields.io/badge/postgres-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
 
-#### Write env file by example adn run programm
+#### Write env file by example and run programm
 ```shell
  docker-compose -f docker-compose.yaml --env-file ./src/.env.prod up --build -d
